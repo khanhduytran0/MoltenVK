@@ -7,6 +7,9 @@ on:
   pull_request:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+  # run once a week
+  schedule:
+  - cron: "0 0 * * 0"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 # See the following, which includes links to supported macOS versions, including supported Xcode versions
@@ -17,17 +20,17 @@ jobs:
       matrix:
         # Primary build on latest macOS and its default Xcode version
         os: [ "macos-latest" ]
-        platform: [ "all", "macos", "ios" ]
+        platform: [ "ios" ]
         upload_artifacts: [ true ]
         select_xcode: [ false ]
 
         # Legacy build. Up to 3 versions behind latest (or beta).
-        include:
-          - os: "macos-12"
-            xcode: "13.4.1"
-            platform: "macos"
-            upload_artifacts: false
-            select_xcode: true
+        #include:
+        #  - os: "macos-12"
+        #    xcode: "13.4.1"
+        #    platform: "macos"
+        #    upload_artifacts: false
+        #    select_xcode: true
       fail-fast: false
 
     name: 'MoltenVK (Xcode ${{ matrix.xcode }} - ${{ matrix.platform }})'
@@ -40,6 +43,9 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 10
+      - uses: imba-tjd/rebase-upstream-action@master
 
       # Python 3.12 removed distutils, which is used by glslang::update_glslang_sources.py called from fetchDependencies
       - uses: actions/setup-python@v4
@@ -89,7 +95,7 @@ jobs:
 
       - name: Build MoltenVK
         run: |
-          make ${{ matrix.platform }}
+          make ${{ matrix.platform }} MVK_USE_METAL_PRIVATE_API=1
 
       - name: Output MoltenVK Build Logs on Failure
         if: failure()
